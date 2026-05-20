@@ -79,4 +79,5 @@ def chart(symbol: str, days: int = 30):
     df = get_bars(data, symbol)
     df = calculate_signals(df).tail(days)
     df['date'] = df['date'].astype(str)
+    df = df.where(df.notna(), other=None)
     return df[['date', 'close', 'ma5', 'ma20', 'rsi', 'signal']].to_dict(orient='records')

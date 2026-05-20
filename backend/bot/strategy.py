@@ -27,11 +27,14 @@ def calculate_signals(df: pd.DataFrame) -> pd.DataFrame:
 def get_latest_signal(df: pd.DataFrame) -> dict:
     df = calculate_signals(df)
     last = df.iloc[-1]
+    def safe(val, decimals=2):
+        return round(float(val), decimals) if pd.notna(val) else None
+
     return {
         'signal': last['signal'],
-        'price': round(last['close'], 2),
-        'ma5': round(last['ma5'], 2) if pd.notna(last['ma5']) else None,
-        'ma20': round(last['ma20'], 2) if pd.notna(last['ma20']) else None,
-        'rsi': round(last['rsi'], 2) if pd.notna(last['rsi']) else None,
-        'macd': round(last['macd'], 4) if pd.notna(last['macd']) else None,
+        'price': safe(last['close']),
+        'ma5': safe(last['ma5']),
+        'ma20': safe(last['ma20']),
+        'rsi': safe(last['rsi']),
+        'macd': safe(last['macd'], 4),
     }
