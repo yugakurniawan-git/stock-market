@@ -75,9 +75,14 @@ def positions():
 
 @app.get("/chart/{symbol}")
 def chart(symbol: str, days: int = 30):
+    import math
     data = get_data_client()
     df = get_bars(data, symbol)
     df = calculate_signals(df).tail(days)
     df['date'] = df['date'].astype(str)
-    df = df.where(df.notna(), other=None)
-    return df[['date', 'close', 'ma5', 'ma20', 'rsi', 'signal']].to_dict(orient='records')
+    records = df[['date', 'close', 'ma5', 'ma20', 'rsi', 'signal']].to_dict(orient='records')
+    def clean(v):
+        if isinstance(v, float) and (math.isnan(v) or math.isinf(v)):
+            return None
+        return v
+    return [{k: clean(v) for k, v in r.items()} for r in records]
