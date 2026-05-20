@@ -1,20 +1,26 @@
 import os
 from dotenv import load_dotenv
-import alpaca_trade_api as tradeapi
+from alpaca.trading.client import TradingClient
+from alpaca.data.historical import StockHistoricalDataClient
 
 load_dotenv()
 
-def get_api():
-    return tradeapi.REST(
-        os.getenv('ALPACA_API_KEY'),
-        os.getenv('ALPACA_SECRET_KEY'),
-        base_url=os.getenv('ALPACA_BASE_URL', 'https://paper-api.alpaca.markets'),
-        api_version='v2'
+def get_trading_client() -> TradingClient:
+    return TradingClient(
+        api_key=os.getenv('ALPACA_API_KEY'),
+        secret_key=os.getenv('ALPACA_SECRET_KEY'),
+        paper=True
+    )
+
+def get_data_client() -> StockHistoricalDataClient:
+    return StockHistoricalDataClient(
+        api_key=os.getenv('ALPACA_API_KEY'),
+        secret_key=os.getenv('ALPACA_SECRET_KEY'),
     )
 
 def test_connection():
-    api = get_api()
-    account = api.get_account()
+    client = get_trading_client()
+    account = client.get_account()
     print(f"Status      : {account.status}")
     print(f"Buying Power: ${float(account.buying_power):,.2f}")
     print(f"Portfolio   : ${float(account.portfolio_value):,.2f}")

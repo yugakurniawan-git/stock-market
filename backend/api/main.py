@@ -5,7 +5,10 @@ sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'bot'))
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from connection import get_api
+from datetime import datetime, timedelta
+from alpaca.data.requests import StockBarsRequest
+from alpaca.data.timeframe import TimeFrame
+from connection import get_trading_client, get_data_client
 from database import get_trade_history, get_open_position
 from strategy import get_latest_signal, calculate_signals
 from engine import get_bars
@@ -25,8 +28,8 @@ WATCHLIST = os.getenv('WATCHLIST', 'AAPL,NVDA,MSFT,GOOGL,META').split(',')
 
 @app.get("/account")
 def account():
-    api = get_api()
-    acc = api.get_account()
+    client = get_trading_client()
+    acc = client.get_account()
     return {
         "portfolio_value": float(acc.portfolio_value),
         "buying_power": float(acc.buying_power),
@@ -36,14 +39,14 @@ def account():
 
 @app.get("/signals")
 def signals():
-    api = get_api()
+    data = get_data_client()
     result = []
     for symbol in WATCHLIST:
         try:
-            df = get_bars(api, symbol)
-            data = get_latest_signal(df)
-            data['symbol'] = symbol
-            result.append(data)
+            df = get_bars(data, symbol)
+            signal = get_latest_signal(df)
+            signal['symbol'] = symbol
+            result.append(signal)
         except Exception as e:
             result.append({'symbol': symbol, 'error': str(e)})
     return result
@@ -56,18 +59,24 @@ def trades(limit: int = 50):
 
 @app.get("/positions")
 def positions():
-    api = get_api()
+    client = get_trading_client()
     try:
-        pos = api.list_positions()
-        return [{"symbol": p.symbol, "qty": p.qty, "avg_price": float(p.avg_entry_price),
-                 "current_price": float(p.current_price), "pnl": float(p.unrealized_pl),
-                 "pnl_pct": float(p.unrealized_plpc) * 100} for p in pos]
+        pos = client.get_all_positions()
+        return [{
+            "symbol": p.symbol,
+            "qty": p.qty,
+            "avg_price": float(p.avg_entry_price),
+            "current_price": float(p.current_price),
+            "pnl": float(p.unrealized_pl),
+            "pnl_pct": float(p.unrealized_plpc) * 100
+        } for p in pos]
     except:
         return []
 
 @app.get("/chart/{symbol}")
 def chart(symbol: str, days: int = 30):
-    api = get_api()
-    df = get_bars(api, symbol)
+    data = get_data_client()
+    df = get_bars(data, symbol)
     df = calculate_signals(df).tail(days)
+    df['date'] = df['date'].astype(str)
     return df[['date', 'close', 'ma5', 'ma20', 'rsi', 'signal']].to_dict(orient='records')
