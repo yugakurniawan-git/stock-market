@@ -16,10 +16,11 @@ services:
       - "traefik.http.services.market-api.loadbalancer.server.port=8000"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      args:
+        - NEXT_PUBLIC_API_URL=https://api.market.yugakurniawan.com
     restart: unless-stopped
-    environment:
-      - NEXT_PUBLIC_API_URL=https://api.market.yugakurniawan.com
     depends_on:
       - backend
     networks:
