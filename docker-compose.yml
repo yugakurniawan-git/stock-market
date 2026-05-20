@@ -3,17 +3,35 @@ services:
     build: ./backend
     restart: unless-stopped
     env_file: .env
-    ports:
-      - "8001:8000"
     volumes:
       - ./backend/data:/app/data
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.market-api.rule=Host(`api.market.yugakurniawan.com`)"
+      - "traefik.http.routers.market-api.entrypoints=https"
+      - "traefik.http.routers.market-api.tls=true"
+      - "traefik.http.routers.market-api.tls.certresolver=letsencrypt"
+      - "traefik.http.services.market-api.loadbalancer.server.port=8000"
 
   frontend:
     build: ./frontend
     restart: unless-stopped
     environment:
-      - NEXT_PUBLIC_API_URL=http://backend:8000
-    ports:
-      - "3002:3000"
+      - NEXT_PUBLIC_API_URL=https://api.market.yugakurniawan.com
     depends_on:
       - backend
+    networks:
+      - coolify
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.market-frontend.rule=Host(`market.yugakurniawan.com`)"
+      - "traefik.http.routers.market-frontend.entrypoints=https"
+      - "traefik.http.routers.market-frontend.tls=true"
+      - "traefik.http.routers.market-frontend.tls.certresolver=letsencrypt"
+      - "traefik.http.services.market-frontend.loadbalancer.server.port=3000"
+
+networks:
+  coolify:
+    external: true
